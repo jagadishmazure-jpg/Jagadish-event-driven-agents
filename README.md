@@ -21,6 +21,31 @@ with autonomous agents subscribed to event streams:
 - **Event ledger** — every published event hash-chained for a tamper-evident
   audit trail.
 
+## v2: choreography, HITL, fallback
+
+The v1 agents react to *sensor* events. v2 adds agents reacting to
+*each other* — no central orchestrator:
+
+- **Choreography cascades** — `SummarizerAgent` turns quality actions into
+  `notify.summaries` (critical for line stops, warning otherwise);
+  `CommsAgent` routes critical summaries to `comms.urgent` (paged) and the
+  rest to `comms.digest`. `CascadeTracker` records the causal chain per
+  root sensor event, so any sensor → action → summary → page cascade is
+  traceable end to end via `chain_for(root_id)`.
+- **Human-in-the-loop as an event participant** — `ApprovalGateway`
+  publishes `approval.requested` and blocks (with timeout) for a matching
+  `approval.granted` / `approval.denied`. The quality agent's severe
+  `stop_line` goes through approval when a gateway is wired; quarantines
+  stay automatic. Denial or timeout publishes `quality.action_deferred`
+  instead of stopping the line. `SimulatedHuman` stands in for a real
+  approver in tests (approve-all, deny-all, quarantine-only, or
+  severity-threshold policies).
+- **Fallback agents** — `with_fallback` wraps a primary handler: on
+  exception the event still lands in the dead-letter queue and a fallback
+  handler publishes a degraded-but-safe action (defer + manual-inspection
+  work order). `FallbackMonitor.report()` shows primary vs fallback
+  counts per agent.
+
 Vendor-neutral: the pattern, not the product. The bus documents its
 production path (Kafka / Azure Event Hubs); no streaming vendor is required
 to run this.
@@ -37,18 +62,20 @@ the loop, no defective product leaving the plant.
 ## Architecture
 
 ```
-  sensors ──publish──▶  ┌───────────┐  subscribe ┌───────────────┐
-  (temp/vib/press)      │ EventBus  │◀───────────│ QualityAgent  │──▶ quality.actions
-  orders.new ───────────│ (topics,  │◀───────────│MaintenanceAgent│──▶ maintenance.work_orders
-                        │ filters,  │◀───────────│ProductionAgent│──▶ production.recipes
-                        │ DLQ,      │◀───────────│ DigitalTwin   │    (read model)
-                        │ replay)   │            └───────────────┘
-                        └─────┬─────┘
+  sensors ──publish──▶  ┌───────────┐  subscribe ┌──────────────────┐
+  (temp/vib/press)      │ EventBus  │◀───────────│ QualityAgent     │──▶ quality.actions ──▶ SummarizerAgent ──▶ notify.summaries ──▶ CommsAgent ──▶ comms.urgent / digest
+  orders.new ───────────│ (topics,  │◀───────────│ MaintenanceAgent │──▶ maintenance.work_orders
+                        │ filters,  │◀───────────│ ProductionAgent  │──▶ production.recipes
+                        │ DLQ,      │◀───────────│ DigitalTwin      │    (read model)
+                        │ replay)   │◀───────────│ CascadeTracker   │    (causal chains)
+                        └─────┬─────┘            └──────────────────┘
                               │ record
                               ▼
-                       ┌──────────────┐
-                       │ EventLedger  │  hash-chained audit trail
-                       └──────────────┘
+                       ┌──────────────┐         approval.requested ⇄ human
+                       │ EventLedger  │◀── stop_line ──▶ ApprovalGateway ──▶ granted ──▶ stop_line
+                       └──────────────┘  hash-chained                     denied/timeout ──▶ quality.action_deferred
+                                         audit trail                     (fallback agents wrap primaries:
+                                                                          exception ──▶ DLQ + degraded safe action)
 ```
 
 ## Quickstart
@@ -83,7 +110,8 @@ for reading in attacked:
 print(next(a for a in quality.actions if a["action"] == "quarantine_batch"))
 # {'action': 'quarantine_batch', 'equipment_id': 'mixer-01',
 #  'batch_id': 'batch-mixer-01-006',
-#  'reason': 'quality deviation: temperature reading 82.06C vs baseline 72.36C (z=6.0)'}
+#  'reason': 'quality deviation: temperature reading 82.06C vs baseline 72.36C (z=6.0)',
+#  'trigger_event_id': '…', 'root_id': '…'}  # cascade linkage
 print(twin.snapshot()["quarantines"].keys())
 print("ledger ok:", ledger.verify_chain())
 ```
@@ -109,5 +137,5 @@ publishers and subscribers.
 pytest -q
 ```
 
-30 tests, deterministic, no network or API keys. This project is
+51 tests, deterministic, no network or API keys. This project is
 independent and unaffiliated; all data is synthetic.
