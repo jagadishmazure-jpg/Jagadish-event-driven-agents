@@ -121,6 +121,12 @@ print("ledger ok:", ledger.verify_chain())
 See [docs/topics.md](docs/topics.md) for the full topic list, event schemas,
 publishers and subscribers.
 
+## Knowledge base
+
+Distilled study notes from the source material behind this repo's design,
+plus the architecture diagrams redrawn as Mermaid:
+[docs/knowledge/](docs/knowledge/).
+
 ## Production path
 
 - Replace `EventBus` with a durable broker (Kafka, Azure Event Hubs, or a
