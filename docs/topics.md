@@ -59,6 +59,85 @@ Failure modes: `bearing_overheat` (temperature), `mechanical_loosening`
 (vibration), `seal_leak` (pressure). One open order per
 equipment + failure mode (de-duplicated).
 
+## `notify.summaries`
+
+Published by: `SummarizerAgent` (v2 choreography).
+Subscribed by: `CommsAgent`.
+
+```json
+{
+  "original_event_id": "3f2a…",
+  "root_id": "9c1e…",
+  "equipment_id": "mixer-01",
+  "batch_id": "batch-mixer-01-006",
+  "action": "stop_line",
+  "key_numbers": "multi-sensor deviation: temperature reading 90.4C vs baseline 72.1C (z=11.8); also breaching: ['vibration']",
+  "severity": "critical"
+}
+```
+
+Severity: `critical` for `stop_line`, `warning` otherwise. Every summary
+carries `root_id` so the cascade stays linked to its triggering sensor
+event.
+
+## `comms.urgent` / `comms.digest`
+
+Published by: `CommsAgent` (v2 choreography).
+
+Critical summaries route to `comms.urgent` (paged); everything else to
+`comms.digest`. Each routed event cites its trigger.
+
+```json
+{
+  "summary_event_id": "7b11…",
+  "root_id": "9c1e…",
+  "equipment_id": "mixer-01",
+  "batch_id": "batch-mixer-01-006",
+  "action": "stop_line",
+  "severity": "critical",
+  "channel": "page",
+  "triggered_by": "multi-sensor deviation: temperature reading 90.4C vs baseline 72.1C (z=11.8); also breaching: ['vibration']",
+  "note": "PAGED: stop_line on mixer-01 (batch batch-mixer-01-006)"
+}
+```
+
+## `approval.requested` / `approval.granted` / `approval.denied` / `approval.timed_out`
+
+Published by: `ApprovalGateway` (requested, timed_out); human approver
+(granted, denied). Subscribed by: `ApprovalGateway`, `SimulatedHuman`
+(or a real human via UI/chat in production).
+
+```json
+{
+  "approval_id": "a41f…",
+  "action": "stop_line",
+  "context": {"equipment_id": "mixer-01", "batch_id": "batch-mixer-01-006",
+              "reason": "multi-sensor deviation: …", "severity": "critical"},
+  "requested_at": 1792091700.0
+}
+```
+
+Decision events carry `approval_id`, `decided_by` and `reason`.
+`approval.timed_out` fires when nobody answers within the timeout.
+
+## `quality.action_deferred`
+
+Published by: `QualityAgent` (denied/timed-out line stop) or a fallback
+handler (primary agent failure). The safe alternative to an automated
+action that didn't happen.
+
+```json
+{
+  "action": "stop_line",
+  "equipment_id": "mixer-01",
+  "batch_id": "batch-mixer-01-006",
+  "reason": "multi-sensor deviation: …",
+  "deferral": "denied",
+  "decided_by": "simulated-human",
+  "defer_reason": "line stop needs a real human"
+}
+```
+
 ## `orders.new`
 
 Published by: order source (demo / ERP adapter in production).
