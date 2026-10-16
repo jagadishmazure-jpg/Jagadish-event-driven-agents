@@ -8,6 +8,17 @@ manufacturing recipes. Vendor-neutral: the pattern, not any product.
 
 from .audit import EventLedger
 from .bus import EventBus
+from .choreography import CascadeTracker, CommsAgent, SummarizerAgent
+from .fallback import (
+    FallbackMonitor,
+    degraded_quality_fallback,
+    with_fallback,
+)
+from .hitl import (
+    ApprovalGateway,
+    SimulatedHuman,
+    approve_below_severity,
+)
 from .maintenance_agent import MaintenanceAgent
 from .production_agent import ProductionAgent
 from .quality_agent import QualityAgent
@@ -26,6 +37,15 @@ __all__ = [
     "MaintenanceAgent",
     "ProductionAgent",
     "DigitalTwin",
+    "SummarizerAgent",
+    "CommsAgent",
+    "CascadeTracker",
+    "ApprovalGateway",
+    "SimulatedHuman",
+    "approve_below_severity",
+    "FallbackMonitor",
+    "with_fallback",
+    "degraded_quality_fallback",
     "gen_sensor_stream",
     "inject_overheat",
     "inject_vibration_spike",
