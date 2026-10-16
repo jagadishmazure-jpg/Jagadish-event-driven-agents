@@ -12,7 +12,14 @@ corrective action published to ``quality.actions``:
 "At once" means breached within the last ``co_breach_seqs`` readings:
 severity is about concurrent deviation, not all-time history.
 
-Every action cites its evidence: reading vs baseline and z-score.
+Pass an ``approval_gateway`` (see ``eventagents.hitl``) to route the
+severe ``stop_line`` through human approval first; quarantines stay
+automatic. Denial or timeout publishes ``quality.action_deferred``
+instead of stopping the line.
+
+Every action cites its evidence: reading vs baseline and z-score, plus
+``trigger_event_id`` / ``root_id`` linking it back to the sensor event
+that started the cascade.
 """
 
 from __future__ import annotations
@@ -51,16 +58,21 @@ class QualityAgent:
         z_warn: float = 3.0,
         z_act: float = 5.0,
         co_breach_seqs: int = 5,
+        approval_gateway=None,
+        approval_timeout: float = 30.0,
     ) -> None:
         self.bus = bus
         self.window = window
         self.z_warn = z_warn
         self.z_act = z_act
         self.co_breach_seqs = co_breach_seqs
+        self.approval_gateway = approval_gateway
+        self.approval_timeout = approval_timeout
         self._hist: Dict[tuple, deque] = defaultdict(lambda: deque(maxlen=window))
         self._last_breach: Dict[tuple, int] = {}
         self.warnings: List[Dict] = []
         self.actions: List[Dict] = []
+        self.deferred: List[Dict] = []
         bus.subscribe("sensors.*", self._on_sensor)
 
     # -- event handling -------------------------------------------------
@@ -86,9 +98,10 @@ class QualityAgent:
             })
 
         if z >= self.z_act:
-            self._act(p, median, sigma, z)
+            self._act(event, median, sigma, z)
 
-    def _act(self, p: Dict, median: float, sigma: float, z: float) -> None:
+    def _act(self, event: Dict, median: float, sigma: float, z: float) -> None:
+        p = event["payload"]
         # severe only if another sensor on the same equipment breached
         # within the recent window -- concurrent deviation, not history
         others = {
@@ -100,20 +113,61 @@ class QualityAgent:
             f"{p['sensor']} reading {p['value']}{p['unit']} vs baseline "
             f"{median:.2f}{p['unit']} (z={z:.1f})"
         )
+        action: Dict = {
+            "equipment_id": p["equipment_id"],
+            "batch_id": p.get("batch_id"),
+            "trigger_event_id": event["event_id"],
+            "root_id": event["event_id"],
+        }
         if others:
-            action = {
-                "action": "stop_line",
-                "equipment_id": p["equipment_id"],
-                "reason": f"multi-sensor deviation: {evidence}; "
-                          f"also breaching: {sorted(others)}",
-                "batch_id": p.get("batch_id"),
-            }
+            action["action"] = "stop_line"
+            action["reason"] = (
+                f"multi-sensor deviation: {evidence}; "
+                f"also breaching: {sorted(others)}"
+            )
+            self._act_stop_line(action)
         else:
-            action = {
-                "action": "quarantine_batch",
-                "equipment_id": p["equipment_id"],
-                "batch_id": p.get("batch_id"),
-                "reason": f"quality deviation: {evidence}",
+            action["action"] = "quarantine_batch"
+            action["reason"] = f"quality deviation: {evidence}"
+            self.actions.append(action)
+            self.bus.publish("quality.actions", action)
+
+    def _act_stop_line(self, action: Dict) -> None:
+        """Severe action: goes through the approval gateway when wired.
+
+        Quarantines stay automatic; only the line stop needs a human.
+        Denial or timeout defers the action (``quality.action_deferred``)
+        instead of stopping the line.
+        """
+        if self.approval_gateway is None:
+            self.actions.append(action)
+            self.bus.publish("quality.actions", action)
+            return
+        decision = self.approval_gateway.request_approval(
+            action="stop_line",
+            context={
+                "equipment_id": action["equipment_id"],
+                "batch_id": action["batch_id"],
+                "reason": action["reason"],
+                "severity": "critical",
+            },
+            timeout_s=self.approval_timeout,
+        )
+        if decision["decision"] == "granted":
+            action["approved_by"] = decision.get("decided_by")
+            self.actions.append(action)
+            self.bus.publish("quality.actions", action)
+        else:
+            deferred = {
+                "action": "stop_line",
+                "equipment_id": action["equipment_id"],
+                "batch_id": action["batch_id"],
+                "reason": action["reason"],
+                "deferral": decision["decision"],  # denied | timeout
+                "decided_by": decision.get("decided_by"),
+                "defer_reason": decision.get("reason"),
+                "trigger_event_id": action["trigger_event_id"],
+                "root_id": action["root_id"],
             }
-        self.actions.append(action)
-        self.bus.publish("quality.actions", action)
+            self.deferred.append(deferred)
+            self.bus.publish("quality.action_deferred", deferred)
