@@ -3,7 +3,6 @@
 All deterministic; no network, no API keys.
 """
 
-import pytest
 
 from eventagents import (
     ApprovalGateway,

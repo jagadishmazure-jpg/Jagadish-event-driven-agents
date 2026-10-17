@@ -14,7 +14,7 @@ a new one may be raised later.
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from .bus import EventBus
 from .quality_agent import robust_stats

@@ -1,7 +1,8 @@
 # 03 — Architecture diagrams
 
-All diagrams as Mermaid (renders natively on GitHub). Redrawn from the
-two source documents; see `01` and `02` for the accompanying notes.
+All diagrams are Mermaid (they render on GitHub). Sections 1 to 3 show general
+event-driven patterns in my own drawing; sections 4 to 7 show this repo. The
+notes in `01` and `02` explain them.
 
 ## 1. Smart factory event flow
 
@@ -48,7 +49,7 @@ flowchart TB
 
 ## 3. Event-driven agentic AI reference architecture
 
-From the architect's guide: gateways ingest triggers, the mesh
+A general shape for event-driven agents: gateways ingest triggers, the mesh
 distributes, agents act, the orchestrator coordinates, humans stay in
 the loop.
 
@@ -78,7 +79,7 @@ flowchart TB
 
 ## 4. Choreography cascade (agent-to-agent, no orchestrator)
 
-The guide's cascade pattern, in this repo's factory flavor: each agent
+Agent-to-agent cascade in this repo: each agent
 reacts to the previous agent's event. Implemented in
 `eventagents/choreography.py`.
 

@@ -1,147 +1,255 @@
-# Event-driven agents for smart manufacturing
+# Jagadish-event-driven-agents
 
-Every agent in a typical portfolio answers requests: ask a question, get an
-answer. The physical world doesn't work that way. A temperature spike
-mid-batch doesn't file a request — it happens, and something has to react
-*now*. Polling a database every minute to notice is wasteful; reacting to
-the event the moment it fires is the architecture.
+[![ci](https://github.com/jagadishmazure-jpg/Jagadish-event-driven-agents/actions/workflows/ci.yml/badge.svg)](https://github.com/jagadishmazure-jpg/Jagadish-event-driven-agents/actions/workflows/ci.yml)
+[![codeql](https://github.com/jagadishmazure-jpg/Jagadish-event-driven-agents/actions/workflows/codeql.yml/badge.svg)](https://github.com/jagadishmazure-jpg/Jagadish-event-driven-agents/actions/workflows/codeql.yml)
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-This project is a **simulated event mesh** — an in-process pub/sub event bus
-with autonomous agents subscribed to event streams:
+**Agents that react to events instead of requests: an in-process event bus with quality, maintenance and production agents for a simulated food plant, agent-to-agent choreography, human approval as an event, fallback agents and a hash-chained ledger.**
 
-- **Quality agent** — watches sensor events, detects deviations from rolling
-  baselines, and publishes corrective actions (quarantine the batch, stop
-  the line). Every action cites its evidence: reading vs baseline, z-score.
-- **Maintenance agent** — tracks equipment health from the same stream,
-  predicts failure modes, and raises de-duplicated work orders.
-- **Production agent** — turns order events into dynamic manufacturing
-  recipes: each order variant gets a tailored recipe, not a fixed one.
-- **Digital twin** — an event-sourced read model: the same events,
-  materialized as "what is true right now."
-- **Event ledger** — every published event hash-chained for a tamper-evident
-  audit trail.
+> Personal learning and portfolio project. Everything runs offline on synthetic,
+> fictional data with no API keys. Nothing is deployed. Numbers in this README
+> come from real runs and are re-checked by CI (`scripts/render_docs.py --check`).
 
-## v2: choreography, HITL, fallback
+## Recruiter summary
 
-The v1 agents react to *sensor* events. v2 adds agents reacting to
-*each other* — no central orchestrator:
+- Shows event-driven agent design: agents subscribe to topics, never call each other, and every cascade can be traced back to the sensor reading that started it.
+- Real run on 1,800 synthetic readings: one batch quarantined (vibration z=45.8); line stops go to a human approver and are deferred when denied; ledger of 1,943 events verifies.
+- Deterministic offline tests; CI with lint, CodeQL, gitleaks and documented-output drift checks.
 
-- **Choreography cascades** — `SummarizerAgent` turns quality actions into
-  `notify.summaries` (critical for line stops, warning otherwise);
-  `CommsAgent` routes critical summaries to `comms.urgent` (paged) and the
-  rest to `comms.digest`. `CascadeTracker` records the causal chain per
-  root sensor event, so any sensor → action → summary → page cascade is
-  traceable end to end via `chain_for(root_id)`.
-- **Human-in-the-loop as an event participant** — `ApprovalGateway`
-  publishes `approval.requested` and blocks (with timeout) for a matching
-  `approval.granted` / `approval.denied`. The quality agent's severe
-  `stop_line` goes through approval when a gateway is wired; quarantines
-  stay automatic. Denial or timeout publishes `quality.action_deferred`
-  instead of stopping the line. `SimulatedHuman` stands in for a real
-  approver in tests (approve-all, deny-all, quarantine-only, or
-  severity-threshold policies).
-- **Fallback agents** — `with_fallback` wraps a primary handler: on
-  exception the event still lands in the dead-letter queue and a fallback
-  handler publishes a degraded-but-safe action (defer + manual-inspection
-  work order). `FallbackMonitor.report()` shows primary vs fallback
-  counts per agent.
+## Purpose
 
-Vendor-neutral: the pattern, not the product. The bus documents its
-production path (Kafka / Azure Event Hubs); no streaming vendor is required
-to run this.
-
-## The food-manufacturing story
-
-A temperature sensor on `mixer-01` starts climbing mid-batch. The quality
-agent's rolling baseline says 72.0°C ± 1.5; the reading hits 90°C (z > 10).
-Before the batch ships, a `quarantine_batch` event fires on
-`quality.actions` with the batch id and the cited numbers — and if a second
-sensor breaches at the same time, the line stops. No polling, no human in
-the loop, no defective product leaving the plant.
+Most agent demos answer requests. A plant does not wait for a request: a
+temperature or vibration spike happens and something has to act now. This repo
+shows the event-driven version: sensors publish, agents subscribe, and agents
+publish their own events that other agents and people react to. My design notes
+are in [docs/knowledge/](docs/knowledge/).
 
 ## Architecture
 
-```
-  sensors ──publish──▶  ┌───────────┐  subscribe ┌──────────────────┐
-  (temp/vib/press)      │ EventBus  │◀───────────│ QualityAgent     │──▶ quality.actions ──▶ SummarizerAgent ──▶ notify.summaries ──▶ CommsAgent ──▶ comms.urgent / digest
-  orders.new ───────────│ (topics,  │◀───────────│ MaintenanceAgent │──▶ maintenance.work_orders
-                        │ filters,  │◀───────────│ ProductionAgent  │──▶ production.recipes
-                        │ DLQ,      │◀───────────│ DigitalTwin      │    (read model)
-                        │ replay)   │◀───────────│ CascadeTracker   │    (causal chains)
-                        └─────┬─────┘            └──────────────────┘
-                              │ record
-                              ▼
-                       ┌──────────────┐         approval.requested ⇄ human
-                       │ EventLedger  │◀── stop_line ──▶ ApprovalGateway ──▶ granted ──▶ stop_line
-                       └──────────────┘  hash-chained                     denied/timeout ──▶ quality.action_deferred
-                                         audit trail                     (fallback agents wrap primaries:
-                                                                          exception ──▶ DLQ + degraded safe action)
+```mermaid
+flowchart LR
+    S["sensors.*"] --> BUS["EventBus<br/>topics, filters, DLQ, replay"]
+    O["orders.new"] --> BUS
+    BUS --> Q["QualityAgent<br/>rolling baseline, z-score"]
+    BUS --> M["MaintenanceAgent<br/>work orders"]
+    BUS --> P["ProductionAgent<br/>recipe per order"]
+    BUS --> T["DigitalTwin<br/>read model"]
+    Q -->|stop_line| AG["ApprovalGateway"]
+    AG <-->|approval.*| H["human / SimulatedHuman"]
+    Q --> SUM["SummarizerAgent"] --> C["CommsAgent<br/>urgent or digest"]
+    BUS --> L["EventLedger<br/>hash chain"]
 ```
 
-## Quickstart
+## How it works
+
+1. Sensor readings are published on `sensors.<equipment>`.
+2. `QualityAgent` keeps a rolling median and spread per sensor. A reading past
+   the action threshold quarantines the batch; two sensors breaching together
+   ask to stop the line. Every action cites the reading, the baseline and the z-score.
+3. With an `ApprovalGateway` wired in, `stop_line` waits for `approval.granted`;
+   denial or timeout publishes `quality.action_deferred` instead.
+4. `SummarizerAgent` and `CommsAgent` react to quality actions (choreography, no
+   orchestrator); critical items are paged on `comms.urgent`, the rest go to `comms.digest`.
+5. `CascadeTracker.chain_for(root_id)` rebuilds the chain from any root reading.
+6. `with_fallback` wraps a handler: on failure a safe degraded action is published
+   and the event still lands in the dead-letter queue.
+7. Every event is recorded in a hash-chained `EventLedger`.
+
+Topics, schemas, publishers and subscribers: [docs/topics.md](docs/topics.md).
+
+## Real code and output
 
 ```python
+"""End-to-end run: overheat on mixer-01, human approval, a failing agent, an order."""
+from collections import Counter
+
 from eventagents import (
-    EventBus, EventLedger, QualityAgent, MaintenanceAgent,
-    ProductionAgent, DigitalTwin, gen_sensor_stream, inject_overheat,
+    ApprovalGateway,
+    CascadeTracker,
+    CommsAgent,
+    DigitalTwin,
+    EventBus,
+    EventLedger,
+    MaintenanceAgent,
+    ProductionAgent,
+    QualityAgent,
+    SimulatedHuman,
+    SummarizerAgent,
+    gen_sensor_stream,
+    inject_overheat,
+    inject_vibration_spike,
 )
 
-bus = EventBus()
-ledger = EventLedger()
-quality = QualityAgent(bus)
-maintenance = MaintenanceAgent(bus)
-production = ProductionAgent(bus)
-twin = DigitalTwin(bus)
 
-# every published event also lands in the tamper-evident ledger
-orig_publish = bus.publish
-def publish(topic, payload):
-    event = orig_publish(topic, payload)
-    ledger.record(event)
-    return event
-bus.publish = publish
+def wire(policy):
+    bus = EventBus()
+    ledger = EventLedger()
+    raw_publish = bus.publish
 
-# clean baseline, then an overheat mid-run
+    def publish(topic, payload):
+        event = raw_publish(topic, payload)
+        ledger.record(event)
+        return event
+
+    bus.publish = publish
+    SimulatedHuman(bus, policy=policy)
+    agents = dict(
+        quality=QualityAgent(bus, approval_gateway=ApprovalGateway(bus), approval_timeout=1.0),
+        maintenance=MaintenanceAgent(bus),
+        production=ProductionAgent(bus),
+        twin=DigitalTwin(bus),
+        tracker=CascadeTracker(bus),
+    )
+    SummarizerAgent(bus)
+    CommsAgent(bus)
+    return bus, ledger, agents
+
+
 stream = gen_sensor_stream(n=200, seed=7)
-attacked = inject_overheat(stream, "mixer-01", start_seq=120)
-for reading in attacked:
-    bus.publish(f"sensors.{reading['equipment_id']}", reading)
+stream = inject_overheat(stream, "mixer-01", start_seq=120)
+stream = inject_vibration_spike(stream, "mixer-01", start_seq=120)
 
-print(next(a for a in quality.actions if a["action"] == "quarantine_batch"))
-# {'action': 'quarantine_batch', 'equipment_id': 'mixer-01',
-#  'batch_id': 'batch-mixer-01-006',
-#  'reason': 'quality deviation: temperature reading 82.06C vs baseline 72.36C (z=6.0)',
-#  'trigger_event_id': '…', 'root_id': '…'}  # cascade linkage
-print(twin.snapshot()["quarantines"].keys())
-print("ledger ok:", ledger.verify_chain())
+for policy in ("approve_quarantine_only", "approve_all"):
+    bus, ledger, a = wire(policy)
+    for r in stream:
+        bus.publish(f"sensors.{r['equipment_id']}", r)
+    q = a["quality"]
+    print(f"--- approver policy: {policy}")
+    print(f"sensor events: {len(stream)}")
+    print("quality actions:", dict(Counter(x["action"] for x in q.actions)))
+    print("deferred (approval denied):", len(q.deferred))
+    first = next(x for x in q.actions if x["action"] == "quarantine_batch")
+    print("first quarantine:", first["batch_id"], "|", first["reason"])
+    print("work orders:", len(a["maintenance"].work_orders))
+    print("pages (comms.urgent):", len(bus.history("comms.urgent")),
+          "| digest:", len(bus.history("comms.digest")))
+    chain = a["tracker"].chain_for(first["root_id"])
+    print("cascade from the triggering reading:", " -> ".join(e["topic"] for e in chain))
+    print("ledger events:", len(ledger.export_jsonl().splitlines()), "| chain verifies:", ledger.verify_chain())
+
+bus, _, a = wire("approve_all")
+bus.publish("orders.new", {"order_id": "ORD-1", "product": "sauce-base", "variant": "allergen-free",
+                           "options": {"allergen_free": True, "extra_qa": True}})
+recipe = a["production"].recipes[0]
+print("--- order ORD-1 recipe steps:", recipe["steps"])
 ```
 
-## Topic catalog
+Output of `python examples/demo.py` (real run, re-checked in CI):
 
-See [docs/topics.md](docs/topics.md) for the full topic list, event schemas,
-publishers and subscribers.
+<!-- run: python examples/demo.py -->
+```text
+--- approver policy: approve_quarantine_only
+sensor events: 1800
+quality actions: {'quarantine_batch': 1}
+deferred (approval denied): 46
+first quarantine: batch-mixer-01-006 | quality deviation: vibration reading 15.0mm/s vs baseline 2.09mm/s (z=45.8)
+work orders: 2
+pages (comms.urgent): 0 | digest: 1
+cascade from the triggering reading: sensors.mixer-01 -> quality.actions -> notify.summaries -> comms.digest
+ledger events: 1943 | chain verifies: True
+--- approver policy: approve_all
+sensor events: 1800
+quality actions: {'quarantine_batch': 1, 'stop_line': 46}
+deferred (approval denied): 0
+first quarantine: batch-mixer-01-006 | quality deviation: vibration reading 15.0mm/s vs baseline 2.09mm/s (z=45.8)
+work orders: 2
+pages (comms.urgent): 46 | digest: 1
+cascade from the triggering reading: sensors.mixer-01 -> quality.actions -> notify.summaries -> comms.digest
+ledger events: 2035 | chain verifies: True
+--- order ORD-1 recipe steps: ['allergen_sanitize', 'stage_materials', 'mix', 'heat_treat', 'fill', 'seal', 'label', 'qa_sample', 'extended_qa']
+```
+<!-- /run -->
 
-## Knowledge base
-
-Distilled study notes from the source material behind this repo's design,
-plus the architecture diagrams redrawn as Mermaid:
-[docs/knowledge/](docs/knowledge/).
-
-## Production path
-
-- Replace `EventBus` with a durable broker (Kafka, Azure Event Hubs, or a
-  managed event mesh) for persistence, cross-process delivery and replay.
-  The subscriber/handler contract is unchanged.
-- Exactly-once semantics: make handlers idempotent (the maintenance agent's
-  work-order de-dup is the in-repo example) and let the broker own offsets.
-- Schema registry for event payloads; the topic catalog in `docs/topics.md`
-  is the starting point.
-
-## Tests
+## How to run
 
 ```bash
-pytest -q
+git clone https://github.com/jagadishmazure-jpg/Jagadish-event-driven-agents.git
+cd Jagadish-event-driven-agents
+python -m pip install pytest      # no runtime dependencies
+python -m pytest -q          # offline, no keys
+python examples/demo.py
+python scripts/render_docs.py --check   # documented output still matches
 ```
 
-51 tests, deterministic, no network or API keys. This project is
-independent and unaffiliated; all data is synthetic.
+Test suite size (real collection, re-checked in CI):
+
+<!-- run: python scripts/count_tests.py -->
+```text
+51 tests collected
+```
+<!-- /run -->
+
+## Guardrails
+
+- Line stops (the costly action) need human approval when a gateway is wired; quarantines stay automatic.
+- Denied or timed-out approvals become `quality.action_deferred`, never a silent drop.
+- A failing agent triggers a degraded safe action (defer plus manual-inspection work order) and a dead letter.
+- Every action carries its evidence and a `root_id` back to the triggering reading.
+- Hash-chained ledger of every event.
+
+## Limitations
+
+- In-process bus; no persistence or cross-process delivery.
+- Each co-breaching reading raises a new `stop_line` request (46 in the demo run); production would de-duplicate per incident.
+- The demo approver is `SimulatedHuman`; the gateway polls with a timeout rather than resuming asynchronously.
+- Baselines are simple robust statistics, not trained models.
+- No MCP or A2A connectivity here; see the related repos.
+
+## Built vs planned
+
+| Capability | Status | Where |
+|---|---|---|
+| Event bus with filters, DLQ and replay | Built | `eventagents/bus.py` |
+| Quality, maintenance, production agents and digital twin | Built | `eventagents/*_agent.py`, `twin.py` |
+| Choreography and cascade tracing | Built | `eventagents/choreography.py` |
+| Human approval as events | Built | `eventagents/hitl.py` |
+| Fallback agents | Built | `eventagents/fallback.py` |
+| Hash-chained ledger | Built | `eventagents/audit.py` |
+| Azure Event Hubs or Kafka backend, schema registry | Planned | docs/implementation-guide.md |
+| Incident-level de-duplication of line stops | Planned | not started |
+
+## Implementation guide
+
+The step-by-step path from this offline build to an Azure deployment is in
+[docs/implementation-guide.md](docs/implementation-guide.md). None of it has been
+run; it is a plan.
+
+## Related repositories
+
+| Repo | How it relates |
+|---|---|
+| [Jagadish-food-ingredients-agentic-ai](https://github.com/jagadishmazure-jpg/Jagadish-food-ingredients-agentic-ai) | Same food-manufacturing domain with request-driven agents on Azure |
+| [Jagadish-azure-ai-integration-platform](https://github.com/jagadishmazure-jpg/Jagadish-azure-ai-integration-platform) | MCP and A2A integration that this repo leaves out |
+| [Jagadish-multi-agent-orchestration](https://github.com/jagadishmazure-jpg/Jagadish-multi-agent-orchestration) | Orchestrated (rather than choreographed) multi-agent patterns |
+| [Jagadish-agentic-ai-model-risk](https://github.com/jagadishmazure-jpg/Jagadish-agentic-ai-model-risk) | Approval and audit controls for AI decisions |
+
+## Documentation
+
+- [Topic catalogue](docs/topics.md)
+- [Design notes and diagrams](docs/knowledge/README.md)
+- [Implementation guide (Azure)](docs/implementation-guide.md)
+- [Interview points](docs/interview-points.md)
+- [Security policy](SECURITY.md)
+
+## Project layout
+
+```
+eventagents/
+  bus.py                topics, filters, dead letters, replay
+  sensors.py            synthetic stream + fault injection
+  quality_agent.py      deviation detection, quarantine / stop line
+  maintenance_agent.py  health scoring, work orders
+  production_agent.py   recipe per order
+  twin.py               event-sourced read model
+  choreography.py       summariser, comms, cascade tracker
+  hitl.py               approval gateway, simulated human
+  fallback.py           degraded safe actions
+  audit.py              hash-chained ledger
+examples/demo.py        the run shown above
+tests/                  offline pytest suite
+```
+
+## License
+
+MIT, see [LICENSE](LICENSE). All data is synthetic; every organisation and person is fictional.

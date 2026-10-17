@@ -1,6 +1,5 @@
 """Tests for eventagents. All deterministic; no network, no API keys."""
 
-import pytest
 
 from eventagents import (
     DigitalTwin,
@@ -361,7 +360,7 @@ def test_full_factory_overheat_scenario():
         return event
     bus.publish = publish
 
-    qa = QualityAgent(bus)
+    QualityAgent(bus)  # subscribes on construction
     ma = MaintenanceAgent(bus)
     pa = ProductionAgent(bus)
     twin = DigitalTwin(bus)
