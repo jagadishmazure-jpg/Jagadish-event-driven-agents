@@ -1,1 +1,48 @@
-IyAwMTogRXZlbnQtZHJpdmVuIGRlc2lnbiBmb3IgYSBzbWFydCBmYWN0b3J5CgpNeSBvd24gbm90ZXMgb24gd2h5IHRoaXMgcmVwbyBpcyBldmVudC1kcml2ZW4sIHdyaXR0ZW4gZm9yIGludGVydmlldyBwcmVwIGFuZApmb3IgYW55b25lIGFkb3B0aW5nIHRoZSBjb2RlLiBCYWNrZ3JvdW5kIHJlYWRpbmcgdGhhdCBzaGFwZWQgdGhlbSBpcyBjcmVkaXRlZCBhdAp0aGUgZW5kOyBub3RoaW5nIGhlcmUgaXMgY29waWVkIGZyb20gaXQuCgojIyBUaGUgcHJvYmxlbSB3aXRoIHBvbGxpbmcKCkZhY3Rvcnkgc3lzdGVtcyAoc2NoZWR1bGluZywgZXhlY3V0aW9uLCBxdWFsaXR5LCBtYWludGVuYW5jZSkgdXN1YWxseSBrZWVwIHRoZWlyCm93biBkYXRhYmFzZS4gVG8ga25vdyB3aGF0IGlzIGhhcHBlbmluZyByaWdodCBub3csIGV2ZXJ5IHN5c3RlbSBoYXMgdG8gYXNrIGV2ZXJ5Cm90aGVyIG9uZSwgYW5kIHRoZSBhbnN3ZXJzIGFyZSBhbHJlYWR5IG9sZC4gRGVjaXNpb25zIG1hZGUgb24gb2xkIGRhdGEgYXJlIHRoZQpyZWFsIGNvc3Q6IGEgYmFkIGJhdGNoIGtlZXBzIHJ1bm5pbmcgdW50aWwgc29tZW9uZSBxdWVyaWVzIHRoZSByaWdodCB0YWJsZS4KClRoZSBhbHRlcm5hdGl2ZSBpcyB0byB0dXJuIGVhY2ggY2hhbmdlIGludG8gYW4gZXZlbnQgdGhlIG1vbWVudCBpdCBoYXBwZW5zLiBBCnNlbnNvciByZWFkaW5nLCBhIG5ldyBvcmRlciBvciBhIHF1YWxpdHkgdmVyZGljdCBpcyBwdWJsaXNoZWQgb25jZTsgYW55dGhpbmcgdGhhdApjYXJlcyBzdWJzY3JpYmVzLiBQcm9kdWNlcnMgZG8gbm90IGtub3cgd2hvIGxpc3RlbnMsIHNvIGFkZGluZyBhIGNvbnN1bWVyIG5ldmVyCnRvdWNoZXMgdGhlIHByb2R1Y2VyLgoKIyMgVGhyZWUgcGF0dGVybnMsIHRocmVlIGFnZW50cyBpbiB0aGlzIHJlcG8KCnwgUGF0dGVybiB8IFdoYXQgaXQgbWVhbnMgfCBXaGVyZSBpdCBsaXZlcyB8CnwtLS18LS0tfC0tLXwKfCBCdWlsZCB0byBvcmRlciB8IEVhY2ggb3JkZXIgZXZlbnQgcHJvZHVjZXMgaXRzIG93biByZWNpcGUgaW5zdGVhZCBvZiBhIGZpeGVkIHByb2R1Y3Rpb24gcnVuIHwgYGV2ZW50YWdlbnRzL3Byb2R1Y3Rpb25fYWdlbnQucHlgIChgb3JkZXJzLm5ld2AgdG8gcmVjaXBlKSB8CnwgUXVhbGl0eSBpbiB0aGUgbW9tZW50IHwgUmVhZGluZ3MgYXJlIGNvbXBhcmVkIHdpdGggYSByb2xsaW5nIGJhc2VsaW5lOyBhIGRldmlhdGlvbiBxdWFyYW50aW5lcyB0aGUgYmF0Y2ggb3IgYXNrcyB0byBzdG9wIHRoZSBsaW5lIHwgYGV2ZW50YWdlbnRzL3F1YWxpdHlfYWdlbnQucHlgIHwKfCBNYWludGVuYW5jZSBiZWZvcmUgZmFpbHVyZSB8IEVxdWlwbWVudCBoZWFsdGggaXMgc2NvcmVkIGZyb20gdGhlIHNhbWUgc3RyZWFtIGFuZCByYWlzZXMgZGUtZHVwbGljYXRlZCB3b3JrIG9yZGVycyB8IGBldmVudGFnZW50cy9tYWludGVuYW5jZV9hZ2VudC5weWAgfAoKQSAqKmRpZ2l0YWwgdHdpbioqIChgZXZlbnRhZ2VudHMvdHdpbi5weWApIGlzIHRoZSBzYW1lIGV2ZW50cyBmb2xkZWQgaW50byBhIHZpZXcKb2Ygd2hhdCBpcyB0cnVlIG5vdy4gQmVjYXVzZSBpdCBpcyBidWlsdCBmcm9tIGV2ZW50cywgaXQgY2FuIGJlIHJlYnVpbHQgb3IKcmVwbGF5ZWQgYXQgYW55IHRpbWUuCgojIyBXaGF0IHRoZSBldmVudCBidXMgaGFzIHRvIHByb3ZpZGUKCmBldmVudGFnZW50cy9idXMucHlgIGlzIGFuIGluLXByb2Nlc3Mgc3RhbmQtaW4gZm9yIGEgcmVhbCBicm9rZXIuIFRoZSBwcm9wZXJ0aWVzCnRoYXQgbWF0dGVyLCBhbmQgdGhhdCBhIGJyb2tlciBzdWNoIGFzIEF6dXJlIEV2ZW50IEh1YnMgd291bGQgcHJvdmlkZSBpbgpwcm9kdWN0aW9uOgoKLSB0b3BpY3MgYW5kIGZpbHRlcmVkIHN1YnNjcmlwdGlvbnMsIHNvIGVhY2ggY29uc3VtZXIgc2VlcyBvbmx5IHdoYXQgaXQgbmVlZHMKLSBhIGRlYWQtbGV0dGVyIHF1ZXVlIGZvciBoYW5kbGVycyB0aGF0IGZhaWwKLSByZXBsYXksIHNvIGEgbmV3IGNvbnN1bWVyIG9yIGEgcmVidWlsdCB0d2luIGNhbiBjYXRjaCB1cAotIGEgaGFzaC1jaGFpbmVkIGxlZGdlciBvZiBldmVyeSBldmVudCAoYGV2ZW50YWdlbnRzL2F1ZGl0LnB5YCkgZm9yIGF1ZGl0CgojIyBUYWtpbmcgaXQgYmV5b25kIG9uZSBwbGFudAoKV2hlbiBldmVudHMgY3Jvc3Mgc2l0ZXMsIGJhbmR3aWR0aCBhbmQgdHJ1c3QgYmVjb21lIHRoZSBjb25zdHJhaW50czogc2VuZCBvbmx5CnRoZSBzdWJzZXQgYW5vdGhlciBzaXRlIG5lZWRzLCBidWZmZXIgc28gc2VuZGVycyBhbmQgcmVjZWl2ZXJzIGFyZSBkZWNvdXBsZWQsCmxvY2sgZG93biB3aG8gY2FuIHB1Ymxpc2ggYW5kIHN1YnNjcmliZSwgYW5kIGtlZXAgb25lIHZpZXcgb2YgdGhlIHdob2xlIGZsb3cgZm9yCm9wZXJhdGlvbnMuCgo=
+# 01: Event-driven design for a smart factory
+
+My own notes on why this repo is event-driven, written for interview prep and
+for anyone adopting the code. Background reading that shaped them is credited at
+the end; nothing here is copied from it.
+
+## The problem with polling
+
+Factory systems (scheduling, execution, quality, maintenance) usually keep their
+own database. To know what is happening right now, every system has to ask every
+other one, and the answers are already old. Decisions made on old data are the
+real cost: a bad batch keeps running until someone queries the right table.
+
+The alternative is to turn each change into an event the moment it happens. A
+sensor reading, a new order or a quality verdict is published once; anything that
+cares subscribes. Producers do not know who listens, so adding a consumer never
+touches the producer.
+
+## Three patterns, three agents in this repo
+
+| Pattern | What it means | Where it lives |
+|---|---|---|
+| Build to order | Each order event produces its own recipe instead of a fixed production run | `eventagents/production_agent.py` (`orders.new` to recipe) |
+| Quality in the moment | Readings are compared with a rolling baseline; a deviation quarantines the batch or asks to stop the line | `eventagents/quality_agent.py` |
+| Maintenance before failure | Equipment health is scored from the same stream and raises de-duplicated work orders | `eventagents/maintenance_agent.py` |
+
+A **digital twin** (`eventagents/twin.py`) is the same events folded into a view
+of what is true now. Because it is built from events, it can be rebuilt or
+replayed at any time.
+
+## What the event bus has to provide
+
+`eventagents/bus.py` is an in-process stand-in for a real broker. The properties
+that matter, and that a broker such as Azure Event Hubs would provide in
+production:
+
+- topics and filtered subscriptions, so each consumer sees only what it needs
+- a dead-letter queue for handlers that fail
+- replay, so a new consumer or a rebuilt twin can catch up
+- a hash-chained ledger of every event (`eventagents/audit.py`) for audit
+
+## Taking it beyond one plant
+
+When events cross sites, bandwidth and trust become the constraints: send only
+the subset another site needs, buffer so senders and receivers are decoupled,
+lock down who can publish and subscribe, and keep one view of the whole flow for
+operations.
+

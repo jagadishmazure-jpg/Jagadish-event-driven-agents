@@ -1,1 +1,12 @@
-IyBLbm93bGVkZ2UgYmFzZTogZXZlbnQtZHJpdmVuIGFyY2hpdGVjdHVyZQoKTXkgb3duIHN0dWR5IG5vdGVzIG9uIHRoZSBkZXNpZ24gYmVoaW5kIHRoaXMgcmVwbywgcGx1cyBhcmNoaXRlY3R1cmUKZGlhZ3JhbXMuIEJhY2tncm91bmQgcmVhZGluZyBpcyBjcmVkaXRlZCBieSBuYW1lIGF0IHRoZSBlbmQgb2YgZWFjaCBub3RlOwpub3RoaW5nIGlzIGNvcGllZCBmcm9tIGl0LgoKfCAjIHwgRG9jdW1lbnQgfCBOb3RlcyB8CnwtLS18LS0tLS0tLS0tLXwtLS0tLS0tLXwKfCAwMSB8IFtFdmVudC1kcml2ZW4gZGVzaWduIGZvciBhIHNtYXJ0IGZhY3RvcnldKDAxLXNtYXJ0LWZhY3RvcnktZXZlbnQtZHJpdmVuLWFyY2hpdGVjdHVyZS5tZCkgfCBPd24gbm90ZXMgfAp8IDAyIHwgW1doeSBhZ2VudHMgYW5kIGV2ZW50cyBmaXQgdG9nZXRoZXJdKDAyLWV2ZW50LWRyaXZlbi1hZ2VudGljLWFpLWFyY2hpdGVjdHMtZ3VpZGUubWQpIHwgT3duIG5vdGVzIHwKfCAwMyB8IFtBcmNoaXRlY3R1cmUgZGlhZ3JhbXNdKDAzLWFyY2hpdGVjdHVyZS1kaWFncmFtcy5tZCkgfCBPd24gTWVybWFpZCBkaWFncmFtcyB8Cgo=
+# Knowledge base: event-driven architecture
+
+My own study notes on the design behind this repo, plus architecture
+diagrams. Background reading is credited by name at the end of each note;
+nothing is copied from it.
+
+| # | Document | Notes |
+|---|----------|--------|
+| 01 | [Event-driven design for a smart factory](01-smart-factory-event-driven-architecture.md) | Own notes |
+| 02 | [Why agents and events fit together](02-event-driven-agentic-ai-architects-guide.md) | Own notes |
+| 03 | [Architecture diagrams](03-architecture-diagrams.md) | Own Mermaid diagrams |
+
